@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Resell Calculator</title>
+  <style>
+    body {
+      background: #0f172a;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 50px 16px;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .calc-wrap { max-width: 480px; width: 100%; }
+    h1 { text-align: center; font-size: 22px; font-weight: 500; margin-bottom: 1.5rem; }
+    .field-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1rem; }
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 12px; color: #94a3b8; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .input-prefix { display: flex; align-items: center; border: 0.5px solid #334155; border-radius: 8px; overflow: hidden; background: #1e293b; }
+    .input-prefix span { padding: 0 10px; font-size: 14px; color: #94a3b8; border-right: 0.5px solid #1e3a5f; background: #0f172a; line-height: 36px; }
+    .input-prefix input { flex: 1; border: none; outline: none; padding: 0 10px; font-size: 15px; background: transparent; color: white; height: 36px; }
+    .input-suffix { display: flex; align-items: center; border: 0.5px solid #334155; border-radius: 8px; overflow: hidden; background: #1e293b; }
+    .input-suffix span { padding: 0 10px; font-size: 14px; color: #94a3b8; border-left: 0.5px solid #1e3a5f; background: #0f172a; line-height: 36px; }
+    .input-suffix input { flex: 1; border: none; outline: none; padding: 0 10px; font-size: 15px; background: transparent; color: white; height: 36px; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: #1e293b; border-radius: 8px; border: 0.5px solid #334155; margin-bottom: 1rem; }
+    .toggle-row span { font-size: 14px; color: white; }
+    .toggle-row small { font-size: 12px; color: #94a3b8; }
+    .toggle { position: relative; display: inline-block; width: 36px; height: 20px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider-t { position: absolute; inset: 0; background: #334155; border-radius: 20px; cursor: pointer; transition: 0.2s; }
+    .slider-t:before { content: ""; position: absolute; height: 14px; width: 14px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+    input:checked + .slider-t { background: #3b82f6; }
+    input:checked + .slider-t:before { transform: translateX(16px); }
+    .calc-btn { width: 100%; padding: 10px; border-radius: 8px; border: 0.5px solid #334155; background: #1e293b; color: white; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.15s; margin-bottom: 1.25rem; }
+    .calc-btn:hover { background: #273549; }
+    .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 1rem; }
+    .metric-card { background: #1e293b; border-radius: 8px; padding: 12px 14px; }
+    .metric-card .mlabel { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .metric-card .mval { font-size: 22px; font-weight: 500; color: white; }
+    .metric-card.positive .mval { color: #22c55e; }
+    .metric-card.negative .mval { color: #ef4444; }
+    .divider { border: none; border-top: 0.5px solid #334155; margin: 1rem 0; }
+    .rec-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: #1e293b; border-radius: 8px; border: 0.5px solid #334155; }
+    .rec-row .rlabel { font-size: 13px; color: #94a3b8; }
+    .rec-row .rval { font-size: 17px; font-weight: 500; color: white; }
+    .badge { font-size: 11px; padding: 3px 8px; border-radius: 8px; font-weight: 500; }
+    .badge.good { background: #14532d; color: #22c55e; }
+    .badge.bad { background: #450a0a; color: #ef4444; }
+    #results { display: none; }
+  </style>
+</head>
+<body>
+<div class="calc-wrap">
+  <h1>Resell Calculator</h1>
+
+  <div class="field-group">
+    <div class="two-col">
+      <div class="field">
+        <label>Product cost</label>
+        <div class="input-prefix"><span>$</span><input type="number" id="cost" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+      <div class="field">
+        <label>Sell price</label>
+        <div class="input-prefix"><span>$</span><input type="number" id="price" placeholder="0.00" min="0" step="0.01"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Target margin</label>
+      <div class="input-suffix"><input type="number" id="margin" value="30" min="0" max="100" step="1"><span>%</span></div>
+    </div>
+  </div>
+
+  <div class="toggle-row">
+    <div>
+      <span>eBay fee</span><br>
+      <small>13% of sale price</small>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="fee-toggle" checked>
+      <span class="slider-t"></span>
+    </label>
+  </div>
+
+  <button class="calc-btn" onclick="calculate()">Calculate</button>
+
+  <div id="results">
+    <div class="metrics">
+      <div class="metric-card" id="profit-card">
+        <div class="mlabel">Profit</div>
+        <div class="mval" id="profit-val">—</div>
+      </div>
+      <div class="metric-card" id="margin-card">
+        <div class="mlabel">Margin</div>
+        <div class="mval" id="margin-val">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="mlabel">Platform fee</div>
+        <div class="mval" id="fee-val">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="mlabel">Revenue after fee</div>
+        <div class="mval" id="rev-val">—</div>
+      </div>
+    </div>
+    <hr class="divider">
+    <div class="rec-row">
+      <div>
+        <div class="rlabel">Recommended price</div>
+        <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">to hit target margin</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="badge" id="margin-badge">—</span>
+        <span class="rval" id="rec-val">—</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function calculate() {
+    const cost = parseFloat(document.getElementById('cost').value);
+    const price = parseFloat(document.getElementById('price').value);
+    const targetMargin = parseFloat(document.getElementById('margin').value);
+    const includeFee = document.getElementById('fee-toggle').checked;
+
+    if (isNaN(cost) || isNaN(price) || cost < 0 || price < 0) return;
+
+    const feeRate = includeFee ? 0.13 : 0;
+    const fee = price * feeRate;
+    const revenue = price - fee;
+    const profit = revenue - cost;
+    const margin = price > 0 ? (profit / price) * 100 : 0;
+
+    const recPrice = includeFee
+      ? cost / (1 - feeRate - targetMargin / 100)
+      : cost / (1 - targetMargin / 100);
+
+    const isGood = margin >= targetMargin;
+
+    document.getElementById('profit-val').textContent = '$' + profit.toFixed(2);
+    document.getElementById('margin-val').textContent = margin.toFixed(1) + '%';
+    document.getElementById('fee-val').textContent = '$' + fee.toFixed(2);
+    document.getElementById('rev-val').textContent = '$' + revenue.toFixed(2);
+    document.getElementById('rec-val').textContent = '$' + recPrice.toFixed(2);
+
+    document.getElementById('profit-card').className = 'metric-card ' + (profit >= 0 ? 'positive' : 'negative');
+    document.getElementById('margin-card').className = 'metric-card ' + (isGood ? 'positive' : 'negative');
+
+    const badge = document.getElementById('margin-badge');
+    badge.textContent = isGood ? 'Target met' : 'Below target';
+    badge.className = 'badge ' + (isGood ? 'good' : 'bad');
+
+    document.getElementById('results').style.display = 'block';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') calculate(); });
+</script>
+</body>
+</html>
